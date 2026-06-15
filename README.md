@@ -18,36 +18,39 @@ Facezero is a native iOS prototype for real-time face masking using Apple’s AR
 
 Face tracking will not work properly in the simulator because it requires the TrueDepth camera.
 
-## Build the IPA on GitHub
+## SideStore route
 
-The repo includes a GitHub Actions workflow at:
+For the no-$99 testing path, use SideStore to sign and install the IPA on your iPhone.
+
+Recommended flow:
+
+1. Let GitHub Actions compile/package Facezero.
+2. Download the generated IPA artifact.
+3. Import the IPA into SideStore.
+4. Let SideStore sign it with your Apple ID flow.
+5. Refresh it through SideStore when needed.
+
+Read:
+
+```text
+docs/SIDESTORE_BUILD.md
+```
+
+## Paid Apple Developer route
+
+The repo also includes a signed GitHub Actions workflow at:
 
 ```text
 .github/workflows/ios-ipa.yml
 ```
 
-It can generate the Xcode project, archive Facezero, export a signed `.ipa`, and upload it as a workflow artifact.
+It can generate the Xcode project, archive Facezero, export a signed `.ipa`, and upload it as a workflow artifact when Apple signing secrets are available.
 
 For setup, read:
 
 ```text
 docs/GITHUB_IPA_BUILD.md
 ```
-
-Required signing secrets:
-
-- `APPLE_TEAM_ID`
-- `BUILD_CERTIFICATE_BASE64`
-- `P12_PASSWORD`
-- `BUILD_PROVISION_PROFILE_BASE64`
-- `KEYCHAIN_PASSWORD`
-
-Optional variables:
-
-- `IOS_BUNDLE_ID`, default `com.tekdev.facezero`
-- `EXPORT_METHOD`, default `development`
-
-For real iPhone testing, use a development provisioning profile that includes your iPhone UDID.
 
 ## Open locally
 
