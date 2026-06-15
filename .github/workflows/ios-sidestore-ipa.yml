@@ -1,0 +1,81 @@
+name: Build SideStore IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-sidestore-ipa:
+    name: Build IPA package for SideStore
+    runs-on: macos-15
+
+    env:
+      APP_NAME: Facezero
+      SCHEME: Facezero
+      CONFIGURATION: Release
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'com.tekdev.facezero' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Apply bundle identifier
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          path = Path("project.yml")
+          text = path.read_text()
+          text = text.replace(
+              "PRODUCT_BUNDLE_IDENTIFIER: com.tekdev.facezero",
+              f"PRODUCT_BUNDLE_IDENTIFIER: {os.environ['IOS_BUNDLE_ID']}"
+          )
+          path.write_text(text)
+          PY
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app bundle without CI signing
+        run: |
+          xcodebuild build \
+            -project Facezero.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -sdk iphoneos \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID"
+
+      - name: Package app bundle as IPA
+        run: |
+          APP_PATH=$(find "$PWD/build/DerivedData" -path "*/Build/Products/$CONFIGURATION-iphoneos/$APP_NAME.app" -type d | head -n 1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not find built app bundle"
+            exit 1
+          fi
+
+          mkdir -p "$PWD/build/ipa/Payload"
+          cp -R "$APP_PATH" "$PWD/build/ipa/Payload/$APP_NAME.app"
+
+          cd "$PWD/build/ipa"
+          zip -qry "$APP_NAME-SideStore.ipa" Payload
+
+      - name: Upload SideStore IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Facezero-SideStore-IPA
+          path: build/ipa/Facezero-SideStore.ipa
+          if-no-files-found: error
