@@ -1,0 +1,26 @@
+- name: Build (unsigned, for SideStore)
+  run: |
+    xcodebuild build \
+      -project Facezero.xcodeproj \
+      -scheme Facezero \
+      -sdk iphoneos \
+      -configuration Release \
+      -derivedDataPath $RUNNER_TEMP/DerivedData \
+      CODE_SIGNING_ALLOWED=NO \
+      CODE_SIGNING_REQUIRED=NO \
+      CODE_SIGN_IDENTITY="" \
+      DEVELOPMENT_TEAM=""
+
+- name: Package IPA
+  run: |
+    APP_PATH=$(find $RUNNER_TEMP/DerivedData -name "Facezero.app" -path "*/iphoneos/*" | head -1)
+    mkdir -p $RUNNER_TEMP/Payload
+    cp -r "$APP_PATH" $RUNNER_TEMP/Payload/Facezero.app
+    cd $RUNNER_TEMP
+    zip -r Facezero.ipa Payload/
+
+- name: Upload IPA artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: Facezero-unsigned
+    path: ${{ runner.temp }}/Facezero.ipa
