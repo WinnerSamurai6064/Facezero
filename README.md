@@ -20,7 +20,7 @@ Face tracking will not work properly in the simulator because it requires the Tr
 
 ## Open the project
 
-This starter includes an `XcodeGen` project file because the repository was empty.
+This starter includes an `XcodeGen` project file.
 
 ```bash
 brew install xcodegen
