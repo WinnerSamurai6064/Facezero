@@ -45,8 +45,18 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Show generated project files
+        run: |
+          echo "Generated project:"
+          ls -lah
+          echo ""
+          echo "Source files:"
+          find Facezero -maxdepth 4 -type f -print
+
       - name: Build app bundle without CI signing
         run: |
+          set -e
+
           xcodebuild build \
             -project Facezero.xcodeproj \
             -scheme "$SCHEME" \
@@ -58,8 +68,10 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID"
 
-      - name: Package app bundle as IPA
+      - name: Verify built app bundle
         run: |
+          set -e
+
           APP_PATH=$(find "$PWD/build/DerivedData" -path "*/Build/Products/$CONFIGURATION-iphoneos/$APP_NAME.app" -type d | head -n 1)
 
           if [ -z "$APP_PATH" ]; then
@@ -67,11 +79,44 @@ jobs:
             exit 1
           fi
 
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+
+          echo "App bundle size:"
+          du -sh "$APP_PATH"
+
+          echo ""
+          echo "App bundle contents:"
+          find "$APP_PATH" -maxdepth 2 -type f -print -exec ls -lh {} \;
+
+          echo ""
+          echo "Executable check:"
+          EXECUTABLE_PATH="$APP_PATH/$APP_NAME"
+
+          if [ ! -f "$EXECUTABLE_PATH" ]; then
+            echo "Missing app executable at: $EXECUTABLE_PATH"
+            exit 1
+          fi
+
+          ls -lh "$EXECUTABLE_PATH"
+          file "$EXECUTABLE_PATH"
+
+      - name: Package app bundle as IPA
+        run: |
+          set -e
+
           mkdir -p "$PWD/build/ipa/Payload"
           cp -R "$APP_PATH" "$PWD/build/ipa/Payload/$APP_NAME.app"
 
           cd "$PWD/build/ipa"
           zip -qry "$APP_NAME-SideStore.ipa" Payload
+
+          echo "IPA size:"
+          ls -lh "$APP_NAME-SideStore.ipa"
+          du -sh "$APP_NAME-SideStore.ipa"
+
+          echo ""
+          echo "IPA contents:"
+          unzip -l "$APP_NAME-SideStore.ipa" | head -n 80
 
       - name: Upload SideStore IPA artifact
         uses: actions/upload-artifact@v4
