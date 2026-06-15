@@ -27,6 +27,9 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Generate bundled visual assets
+        run: python3 scripts/generate_assets.py
+
       - name: Apply bundle identifier
         run: |
           python3 - <<'PY'
@@ -51,7 +54,7 @@ jobs:
           ls -lah
           echo ""
           echo "Source files:"
-          find Facezero -maxdepth 4 -type f -print
+          find Facezero -maxdepth 5 -type f -print
 
       - name: Build app bundle without CI signing
         run: |
@@ -116,7 +119,7 @@ jobs:
 
           echo ""
           echo "IPA contents:"
-          unzip -l "$APP_NAME-SideStore.ipa" | head -n 80
+          unzip -l "$APP_NAME-SideStore.ipa" | head -n 120
 
       - name: Upload SideStore IPA artifact
         uses: actions/upload-artifact@v4
